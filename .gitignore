@@ -43,3 +43,6 @@ phpunit.phar
 #codeception
 /tests/_output
 c3.php
+
+# phpbench
+/.phpbench
