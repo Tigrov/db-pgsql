@@ -5,22 +5,13 @@ declare(strict_types=1);
 namespace Yiisoft\Db\Pgsql;
 
 use JsonException;
-use PDO;
-use Yiisoft\Db\Command\Param;
 use Yiisoft\Db\Expression\ArrayExpression;
 use Yiisoft\Db\Expression\ExpressionInterface;
-use Yiisoft\Db\Expression\JsonExpression;
 use Yiisoft\Db\Schema\AbstractColumnSchema;
-use Yiisoft\Db\Schema\SchemaInterface;
 
 use function array_walk_recursive;
-use function bindec;
-use function decbin;
 use function is_array;
-use function is_int;
 use function is_string;
-use function json_decode;
-use function str_pad;
 
 /**
  * Represents the metadata of a column in a database table for PostgreSQL Server.
@@ -58,6 +49,19 @@ final class ColumnSchema extends AbstractColumnSchema
      */
     private string|null $sequenceName = null;
 
+    private Typecast $typecast;
+
+    public string|null $dbTypecast = 'value';
+
+    public string|null $phpTypecast = 'value';
+
+    public function __construct(string $name)
+    {
+        $this->typecast = new Typecast($this);
+
+        parent::__construct($name);
+    }
+
     /**
      * Converts the input value according to {@see type} and {@see dbType} for use in a db query.
      *
@@ -77,19 +81,7 @@ final class ColumnSchema extends AbstractColumnSchema
             return new ArrayExpression($value, $this->getDbType(), $this->dimension);
         }
 
-        return match ($this->getType()) {
-            SchemaInterface::TYPE_JSON => new JsonExpression($value, $this->getDbType()),
-
-            SchemaInterface::TYPE_BINARY => is_string($value)
-                ? new Param($value, PDO::PARAM_LOB) // explicitly setup PDO param type for binary column
-                : $this->typecast($value),
-
-            Schema::TYPE_BIT => is_int($value)
-                ? str_pad(decbin($value), (int) $this->getSize(), '0', STR_PAD_LEFT)
-                : (string) $value,
-
-            default => $this->typecast($value),
-        };
+        return $this->typecast->{$this->dbTypecast}($value);
     }
 
     /**
@@ -132,20 +124,11 @@ final class ColumnSchema extends AbstractColumnSchema
      */
     private function phpTypecastValue(mixed $value): mixed
     {
-        if ($value === null) {
-            return null;
+        if ($value === null || $value instanceof ExpressionInterface) {
+            return $value;
         }
 
-        return match ($this->getType()) {
-            Schema::TYPE_BIT => is_string($value) ? bindec($value) : $value,
-
-            SchemaInterface::TYPE_BOOLEAN => $value && $value !== 'f',
-
-            SchemaInterface::TYPE_JSON
-                => json_decode((string) $value, true, 512, JSON_THROW_ON_ERROR),
-
-            default => parent::phpTypecast($value),
-        };
+        return $this->typecast->{$this->phpTypecast}($value);
     }
 
     /**

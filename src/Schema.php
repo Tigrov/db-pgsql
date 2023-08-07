@@ -812,7 +812,30 @@ final class Schema extends AbstractPdoSchema
         }
 
         $column->type($this->typeMap[(string) $column->getDbType()] ?? self::TYPE_STRING);
+
+        $phpType = $this->getColumnPhpType($column);
         $column->phpType($this->getColumnPhpType($column));
+
+        switch ($column->getType()) {
+            case self::TYPE_JSON:
+                $column->dbTypecast = 'dbJson';
+                $column->phpTypecast = 'phpJson';
+                break;
+            case self::TYPE_BINARY:
+                $column->dbTypecast = 'dbBinary';
+                $column->phpTypecast = self::PHP_TYPE_STRING;
+                break;
+            case self::TYPE_BIT:
+                $column->dbTypecast = 'dbBit';
+                $column->phpTypecast = 'phpBit';
+                break;
+            default:
+                if (in_array($phpType, [self::PHP_TYPE_STRING, self::PHP_TYPE_INTEGER, self::PHP_TYPE_DOUBLE, self::PHP_TYPE_BOOLEAN], true)) {
+                    $column->dbTypecast = $phpType;
+                    $column->phpTypecast = $phpType;
+                }
+        }
+
         $column->defaultValue($this->normalizeDefaultValue($defaultValue, $column));
 
         return $column;

@@ -109,6 +109,8 @@ final class ColumnSchemaTest extends TestCase
         $columnSchema = new ColumnSchema('boolean');
 
         $columnSchema->type('boolean');
+        $columnSchema->dbTypecast = 'boolean';
+        $columnSchema->phpTypecast = 'boolean';
 
         $this->assertFalse($columnSchema->phpTypeCast('f'));
         $this->assertTrue($columnSchema->phpTypeCast('t'));
