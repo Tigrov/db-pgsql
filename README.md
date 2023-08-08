@@ -18,7 +18,9 @@ git switch speedup_typecast_predefined
 ./vendor/bin/phpbench run --filter=PhpTypecast  --tag=phpTypecastPredefined --store
 ```
 
-## Result
+## Results
+
+PHP version 8.2.9 without xdebug.
 
 ### For `dbTypecast()`
 
@@ -26,10 +28,10 @@ git switch speedup_typecast_predefined
 ./vendor/bin/phpbench report --report=overview --ref=dbTypecastCurrent --ref=dbTypecastPredefined
 ```
 
-| suite                | date                | php   | vcs branch                  | xdebug | iterations | revs  | mode    | net_time |
-|----------------------|---------------------|-------|-----------------------------|--------|------------|-------|---------|----------|
-| dbtypecastcurrent    | 2023-08-07 09:51:57 | 8.2.9 | speedup_typecast_current    | false  | 60         | 60000 | 0.381μs | 25.933ms |
-| dbtypecastpredefined | 2023-08-07 09:55:01 | 8.2.9 | speedup_typecast_predefined | false  | 60         | 60000 | 0.226μs | 19.613ms |
+| vcs branch                  | iterations | revs  | mode    | net_time |
+|-----------------------------|------------|-------|---------|----------|
+| speedup_typecast_current    | 60         | 60000 | 0.381μs | 25.933ms |
+| speedup_typecast_predefined | 60         | 60000 | 0.250μs | 19.409ms |
 
 ### For `phpTypecast()`
 
@@ -37,7 +39,7 @@ git switch speedup_typecast_predefined
 ./vendor/bin/phpbench report --report=overview --ref=phpTypecastCurrent --ref=phpTypecastPredefined
 ```
 
-| suite                 | date                | php   | vcs branch                  | xdebug | iterations | revs  | mode    | net_time |
-|-----------------------|---------------------|-------|-----------------------------|--------|------------|-------|---------|----------|
-| phptypecastcurrent    | 2023-08-07 10:07:27 | 8.2.9 | speedup_typecast_current    | false  | 60         | 60000 | 0.430μs | 25.894ms |
-| phptypecastpredefined | 2023-08-07 10:05:23 | 8.2.9 | speedup_typecast_predefined | false  | 60         | 60000 | 0.264μs | 20.128ms |
+| vcs branch                  | iterations | revs  | mode    | net_time |
+|-----------------------------|------------|-------|---------|----------|
+| speedup_typecast_current    | 60         | 60000 | 0.430μs | 25.894ms |
+| speedup_typecast_predefined | 60         | 60000 | 0.242μs | 18.227ms |

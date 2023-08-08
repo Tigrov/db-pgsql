@@ -73,11 +73,11 @@ final class ColumnSchema extends AbstractColumnSchema
      */
     public function dbTypecast(mixed $value): mixed
     {
-        if ($value === null || $value instanceof ExpressionInterface) {
-            return $value;
-        }
-
         if ($this->dimension > 0) {
+            if ($value === null || $value instanceof ExpressionInterface) {
+                return $value;
+            }
+
             return new ArrayExpression($value, $this->getDbType(), $this->dimension);
         }
 
@@ -108,23 +108,9 @@ final class ColumnSchema extends AbstractColumnSchema
 
             array_walk_recursive($value, function (mixed &$val) {
                 /** @psalm-var mixed $val */
-                $val = $this->phpTypecastValue($val);
+                $val = $this->typecast->{$this->phpTypecast}($val);
             });
 
-            return $value;
-        }
-
-        return $this->phpTypecastValue($value);
-    }
-
-    /**
-     * Casts $value after retrieving from the DBMS to PHP representation.
-     *
-     * @throws JsonException
-     */
-    private function phpTypecastValue(mixed $value): mixed
-    {
-        if ($value === null || $value instanceof ExpressionInterface) {
             return $value;
         }
 
