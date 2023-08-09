@@ -48,21 +48,21 @@ class Typecast
         };
     }
 
-    public function boolean(mixed $value): mixed
-    {
-        return match (true) {
-            $value, $value === false, $value === null, $value instanceof ExpressionInterface => $value,
-            is_string($value) => $value !== '' ? $value && $value !== 'f' : null,
-            default => (bool) $value,
-        };
-    }
-
     public function double(mixed $value): mixed
     {
         return match (true) {
             is_float($value), $value === null, $value instanceof ExpressionInterface => $value,
             $value === '' => null,
             default => (float) $value,
+        };
+    }
+
+    public function boolean(mixed $value): mixed
+    {
+        return match (true) {
+            $value, $value === false, $value === null, $value instanceof ExpressionInterface => $value,
+            is_string($value) => $value === '' ? null : $value && $value !== 'f',
+            default => (bool) $value,
         };
     }
 
@@ -73,7 +73,7 @@ class Typecast
             $value === null, is_resource($value), $value instanceof ExpressionInterface => $value,
             /** ensure type cast always has . as decimal separator in all locales */
             is_float($value) => DbStringHelper::normalizeFloat($value),
-            is_bool($value) => $value ? '1' : '0',
+            $value === false => '0',
             default => (string) $value,
         };
     }
@@ -102,15 +102,23 @@ class Typecast
             return str_pad(decbin($value), (int) $this->column->getSize(), '0', STR_PAD_LEFT);
         }
 
+        if ($value === '') {
+            return null;
+        }
+
         return $value;
     }
 
     public function phpBit(mixed $value): mixed
     {
-        if (is_string($value)) {
-            return $value !== '' ? bindec($value) : null;
+        if (!is_string($value)) {
+            return $value;
         }
 
-        return $value;
+        if ($value === '') {
+            return null;
+        }
+
+        return bindec($value);
     }
 }

@@ -31,7 +31,7 @@ PHP version 8.2.9 without xdebug.
 | vcs branch                  | iterations | revs  | mode    | net_time |
 |-----------------------------|------------|-------|---------|----------|
 | speedup_typecast_current    | 60         | 60000 | 0.381μs | 25.933ms |
-| speedup_typecast_predefined | 60         | 60000 | 0.250μs | 19.409ms |
+| speedup_typecast_predefined | 60         | 60000 | 0.248μs | 19.422ms |
 
 ### For `phpTypecast()`
 
@@ -42,4 +42,4 @@ PHP version 8.2.9 without xdebug.
 | vcs branch                  | iterations | revs  | mode    | net_time |
 |-----------------------------|------------|-------|---------|----------|
 | speedup_typecast_current    | 60         | 60000 | 0.430μs | 25.894ms |
-| speedup_typecast_predefined | 60         | 60000 | 0.242μs | 18.227ms |
+| speedup_typecast_predefined | 60         | 60000 | 0.244μs | 18.087ms |
