@@ -16,28 +16,36 @@ git switch speedup_typecast_current
 git switch speedup_typecast_predefined
 ./vendor/bin/phpbench run --filter=DbTypecast  --tag=dbTypecastPredefined --store
 ./vendor/bin/phpbench run --filter=PhpTypecast  --tag=phpTypecastPredefined --store
+
+git switch speedup_typecast_columns
+./vendor/bin/phpbench run --filter=DbTypecast  --tag=dbTypecastColumns --store
+./vendor/bin/phpbench run --filter=PhpTypecast  --tag=phpTypecastColumns --store
 ```
 
-## Result
+## Results
+
+PHP version 8.2.9 without xdebug.
 
 ### For `dbTypecast()`
 
 ```
-./vendor/bin/phpbench report --report=overview --ref=dbTypecastCurrent --ref=dbTypecastPredefined
+./vendor/bin/phpbench report --report=overview --ref=dbTypecastCurrent --ref=dbTypecastPredefined --ref=dbTypecastColumns
 ```
 
-| suite                | date                | php   | vcs branch                  | xdebug | iterations | revs  | mode    | net_time |
-|----------------------|---------------------|-------|-----------------------------|--------|------------|-------|---------|----------|
-| dbtypecastcurrent    | 2023-08-07 09:51:57 | 8.2.9 | speedup_typecast_current    | false  | 60         | 60000 | 0.381μs | 25.933ms |
-| dbtypecastpredefined | 2023-08-07 09:55:01 | 8.2.9 | speedup_typecast_predefined | false  | 60         | 60000 | 0.226μs | 19.613ms |
+| vcs branch                  | iterations | revs  | mode    | net_time |
+|-----------------------------|------------|-------|---------|----------|
+| speedup_typecast_current    | 60         | 60000 | 0.381μs | 29.028ms |
+| speedup_typecast_predefined | 60         | 60000 | 0.252μs | 22.707ms |
+| speedup_typecast_columns    | 60         | 60000 | 0.142μs | 15.949ms |
 
 ### For `phpTypecast()`
 
 ```
-./vendor/bin/phpbench report --report=overview --ref=phpTypecastCurrent --ref=phpTypecastPredefined
+./vendor/bin/phpbench report --report=overview --ref=phpTypecastCurrent --ref=phpTypecastPredefined --ref=phpTypecastColumns
 ```
 
-| suite                 | date                | php   | vcs branch                  | xdebug | iterations | revs  | mode    | net_time |
-|-----------------------|---------------------|-------|-----------------------------|--------|------------|-------|---------|----------|
-| phptypecastcurrent    | 2023-08-07 10:07:27 | 8.2.9 | speedup_typecast_current    | false  | 60         | 60000 | 0.430μs | 25.894ms |
-| phptypecastpredefined | 2023-08-07 10:05:23 | 8.2.9 | speedup_typecast_predefined | false  | 60         | 60000 | 0.264μs | 20.128ms |
+| vcs branch                  | iterations | revs  | mode    | net_time |
+|-----------------------------|------------|-------|---------|----------|
+| speedup_typecast_current    | 60         | 60000 | 0.449μs | 56.213ms |
+| speedup_typecast_predefined | 60         | 60000 | 0.279μs | 34.744ms |
+| speedup_typecast_columns    | 60         | 60000 | 0.147μs | 26.656ms |
