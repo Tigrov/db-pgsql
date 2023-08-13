@@ -12,7 +12,7 @@ use Yiisoft\Db\Exception\InvalidConfigException;
 use Yiisoft\Db\Expression\ArrayExpression;
 use Yiisoft\Db\Expression\Expression;
 use Yiisoft\Db\Expression\JsonExpression;
-use Yiisoft\Db\Pgsql\ColumnSchema;
+use Yiisoft\Db\Pgsql\Schema\BooleanColumnSchema;
 use Yiisoft\Db\Pgsql\Tests\Support\TestTrait;
 use Yiisoft\Db\Query\Query;
 use Yiisoft\Db\Schema\SchemaInterface;
@@ -106,7 +106,9 @@ final class ColumnSchemaTest extends TestCase
      */
     public function testPhpTypeCastBool(): void
     {
-        $columnSchema = new ColumnSchema('boolean');
+        $this->markTestSkipped('Values `f` and `t` can be retrieved from bool arrays or composite types only');
+
+        $columnSchema = new BooleanColumnSchema('boolean');
 
         $columnSchema->type('boolean');
 
@@ -120,8 +122,8 @@ final class ColumnSchemaTest extends TestCase
         $schema = $db->getSchema();
         $tableSchema = $schema->getTableSchema('type');
 
-        $this->assertEquals(new JsonExpression('', 'json'), $tableSchema->getColumn('json_col')->dbTypecast(''));
-        $this->assertEquals(new JsonExpression('', 'jsonb'), $tableSchema->getColumn('jsonb_col')->dbTypecast(''));
+        $this->assertEquals(new JsonExpression([''], 'json'), $tableSchema->getColumn('json_col')->dbTypecast(['']));
+        $this->assertEquals(new JsonExpression([''], 'jsonb'), $tableSchema->getColumn('jsonb_col')->dbTypecast(['']));
     }
 
     public function testBoolDefault(): void

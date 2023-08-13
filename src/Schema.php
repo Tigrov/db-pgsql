@@ -17,8 +17,17 @@ use Yiisoft\Db\Exception\InvalidConfigException;
 use Yiisoft\Db\Exception\NotSupportedException;
 use Yiisoft\Db\Expression\Expression;
 use Yiisoft\Db\Helper\DbArrayHelper;
+use Yiisoft\Db\Pgsql\Schema\ArrayColumnSchema;
+use Yiisoft\Db\Pgsql\Schema\BinaryColumnSchema;
+use Yiisoft\Db\Pgsql\Schema\BitColumnSchema;
+use Yiisoft\Db\Pgsql\Schema\BooleanColumnSchema;
+use Yiisoft\Db\Pgsql\Schema\DoubleColumnSchema;
+use Yiisoft\Db\Pgsql\Schema\IntegerColumnSchema;
+use Yiisoft\Db\Pgsql\Schema\JsonColumnSchema;
+use Yiisoft\Db\Pgsql\Schema\StringColumnSchema;
 use Yiisoft\Db\Schema\Builder\ColumnInterface;
 use Yiisoft\Db\Schema\ColumnSchemaInterface;
+use Yiisoft\Db\Schema\SchemaInterface;
 use Yiisoft\Db\Schema\TableSchemaInterface;
 
 use function array_merge;
@@ -745,7 +754,6 @@ final class Schema extends AbstractPdoSchema
             /** @psalm-var ColumnArray $info */
             $info = $this->normalizeRowKeyCase($info, false);
 
-            /** @psalm-var ColumnSchema $column */
             $column = $this->loadColumnSchema($info);
 
             $table->column($column->getName(), $column);
@@ -771,26 +779,17 @@ final class Schema extends AbstractPdoSchema
      */
     protected function loadColumnSchema(array $info): ColumnSchemaInterface
     {
-        $column = $this->createColumnSchema($info['column_name']);
+        $column = $this->createColumnSchema($info);
         $column->allowNull($info['is_nullable']);
         $column->autoIncrement($info['is_autoinc']);
         $column->comment($info['column_comment']);
-
-        if (!in_array($info['type_scheme'], [$this->defaultSchema, 'pg_catalog'], true)) {
-            $column->dbType($info['type_scheme'] . '.' . $info['data_type']);
-        } else {
-            $column->dbType($info['data_type']);
-        }
-
         $column->enumValues($info['enum_values'] !== null
             ? explode(',', str_replace(["''"], ["'"], $info['enum_values']))
             : null);
-        $column->unsigned(false); // has no meaning in PG
         $column->primaryKey((bool) $info['is_pkey']);
         $column->precision($info['numeric_precision']);
         $column->scale($info['numeric_scale']);
         $column->size($info['size'] === null ? null : (int) $info['size']);
-        $column->dimension($info['dimension']);
 
         /**
          * pg_get_serial_sequence() doesn't track DEFAULT value change.
@@ -811,8 +810,6 @@ final class Schema extends AbstractPdoSchema
             $column->sequenceName($this->resolveTableName($info['sequence_name'])->getFullName());
         }
 
-        $column->type($this->typeMap[(string) $column->getDbType()] ?? self::TYPE_STRING);
-        $column->phpType($this->getColumnPhpType($column));
         $column->defaultValue($this->normalizeDefaultValue($defaultValue, $column));
 
         return $column;
@@ -834,8 +831,35 @@ final class Schema extends AbstractPdoSchema
         return parent::getColumnPhpType($column);
     }
 
+    // Needs redesign the method `getColumnPhpType()` without `ColumnSchemaInterface`
+    protected function getColumnPhpTypeNew(string $type, bool $isUnsigned = false): string
+    {
+        if ($type === self::TYPE_BIT) {
+            return self::PHP_TYPE_INTEGER;
+        }
+
+        return match ($type) {
+            // abstract type => php type
+            SchemaInterface::TYPE_TINYINT => SchemaInterface::PHP_TYPE_INTEGER,
+            SchemaInterface::TYPE_SMALLINT => SchemaInterface::PHP_TYPE_INTEGER,
+            SchemaInterface::TYPE_INTEGER => PHP_INT_SIZE === 4 && $isUnsigned
+                ? SchemaInterface::PHP_TYPE_STRING
+                : SchemaInterface::PHP_TYPE_INTEGER,
+            SchemaInterface::TYPE_BIGINT => PHP_INT_SIZE === 8 && !$isUnsigned
+                ? SchemaInterface::PHP_TYPE_INTEGER
+                : SchemaInterface::PHP_TYPE_STRING,
+            SchemaInterface::TYPE_BOOLEAN => SchemaInterface::PHP_TYPE_BOOLEAN,
+            SchemaInterface::TYPE_DECIMAL => SchemaInterface::PHP_TYPE_DOUBLE,
+            SchemaInterface::TYPE_FLOAT => SchemaInterface::PHP_TYPE_DOUBLE,
+            SchemaInterface::TYPE_DOUBLE => SchemaInterface::PHP_TYPE_DOUBLE,
+            SchemaInterface::TYPE_BINARY => SchemaInterface::PHP_TYPE_RESOURCE,
+            SchemaInterface::TYPE_JSON => SchemaInterface::PHP_TYPE_ARRAY,
+            default => SchemaInterface::PHP_TYPE_STRING,
+        };
+    }
+
     /**
-     * Converts column's default value according to {@see ColumnSchema::phpType} after retrieval from the database.
+     * Converts column's default value according to {@see ColumnSchemaInterface::getPhpType()} after retrieval from the database.
      *
      * @param string|null $defaultValue The default value retrieved from the database.
      * @param ColumnSchemaInterface $column The column schema object.
@@ -852,10 +876,6 @@ final class Schema extends AbstractPdoSchema
             return null;
         }
 
-        if ($column->getType() === self::TYPE_BOOLEAN && in_array($defaultValue, ['true', 'false'], true)) {
-            return $defaultValue === 'true';
-        }
-
         if (
             in_array($column->getType(), [self::TYPE_TIMESTAMP, self::TYPE_DATE, self::TYPE_TIME], true)
             && in_array(strtoupper($defaultValue), ['NOW()', 'CURRENT_TIMESTAMP', 'CURRENT_DATE', 'CURRENT_TIME'], true)
@@ -866,11 +886,7 @@ final class Schema extends AbstractPdoSchema
         $value = preg_replace("/^B?['(](.*?)[)'](?:::[^:]+)?$/s", '$1', $defaultValue);
         $value = str_replace("''", "'", $value);
 
-        if ($column->getType() === self::TYPE_BINARY && str_starts_with($value, '\\x')) {
-            return hex2bin(substr($value, 2));
-        }
-
-        return $column->phpTypecast($value);
+        return $column->defaultValueTypecast($value);
     }
 
     /**
@@ -1003,17 +1019,55 @@ final class Schema extends AbstractPdoSchema
     }
 
     /**
-     * Creates a column schema for the database.
+     * Creates a column schema for the column.
      *
-     * This method may be overridden by child classes to create a DBMS-specific column schema.
-     *
-     * @param string $name Name of the column.
-     *
-     * @return ColumnSchema
+     * @psalm-param ColumnArray $info Column information.
      */
-    private function createColumnSchema(string $name): ColumnSchema
+    private function createColumnSchema(array $info): ColumnSchemaInterface
     {
-        return new ColumnSchema($name);
+        $name = $info['column_name'];
+        $dbType = $info['data_type'];
+
+        if (!in_array($info['type_scheme'], [$this->defaultSchema, 'pg_catalog'], true)) {
+            $dbType = $info['type_scheme'] . '.' . $dbType;
+        }
+
+        $type = $this->typeMap[$dbType] ?? self::TYPE_STRING;
+        $phpType = $this->getColumnPhpTypeNew($type);
+
+        if ($info['dimension'] > 0) {
+            $column = new ArrayColumnSchema($info['column_name']);
+            $column->dimension($info['dimension']);
+            $column->phpTypecastMethod(match ($type) {
+                self::TYPE_JSON => 'phpJson',
+                self::TYPE_BINARY => 'phpBinary',
+                self::TYPE_BIT => 'phpBit',
+                default => match ($phpType) {
+                    self::PHP_TYPE_INTEGER => 'phpInteger',
+                    self::PHP_TYPE_DOUBLE => 'phpDouble',
+                    self::PHP_TYPE_BOOLEAN => 'phpBoolean',
+                    default => 'phpString',
+                },
+            });
+        } else {
+            $column = match ($type) {
+                self::TYPE_JSON => new JsonColumnSchema($name),
+                self::TYPE_BINARY => new BinaryColumnSchema($name),
+                self::TYPE_BIT => new BitColumnSchema($name),
+                default => match ($phpType) {
+                    self::PHP_TYPE_INTEGER => new IntegerColumnSchema($name),
+                    self::PHP_TYPE_DOUBLE => new DoubleColumnSchema($name),
+                    self::PHP_TYPE_BOOLEAN => new BooleanColumnSchema($name),
+                    default => new StringColumnSchema($name),
+                },
+            };
+        }
+
+        $column->dbType($dbType);
+        $column->type($type);
+        $column->phpType($phpType);
+
+        return $column;
     }
 
     /**
