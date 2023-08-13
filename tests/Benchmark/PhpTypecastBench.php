@@ -17,16 +17,6 @@ class PhpTypecastBench extends AbstractTypecastBench
         $this->string->phpTypecast('string');
     }
 
-    public function benchPhpTypecastStringInt(): void
-    {
-        $this->string->phpTypecast(123);
-    }
-
-    public function benchPhpTypecastIntString(): void
-    {
-        $this->integer->phpTypecast('10');
-    }
-
     public function benchPhpTypecastInt(): void
     {
         $this->integer->phpTypecast(10);
@@ -47,16 +37,6 @@ class PhpTypecastBench extends AbstractTypecastBench
         $this->boolean->phpTypecast(true);
     }
 
-    public function benchPhpTypecastBoolInt(): void
-    {
-        $this->boolean->phpTypecast(1);
-    }
-
-    public function benchPhpTypecastBoolString(): void
-    {
-        $this->boolean->phpTypecast('1');
-    }
-
     public function benchPhpTypecastBinaryString(): void
     {
         $this->binary->phpTypecast("\x10\x11\x12");
@@ -70,5 +50,10 @@ class PhpTypecastBench extends AbstractTypecastBench
     public function benchPhpTypecastBit(): void
     {
         $this->bit->phpTypecast('01111011');
+    }
+
+    public function benchPhpTypecastIntArray(): void
+    {
+        $this->intArray->phpTypecast('{0,1,2,3,4,5,6,7,8,9}');
     }
 }

@@ -8,6 +8,7 @@ use JsonException;
 use Yiisoft\Db\Expression\ArrayExpression;
 use Yiisoft\Db\Expression\ExpressionInterface;
 use Yiisoft\Db\Schema\AbstractColumnSchema;
+use Yiisoft\Db\Schema\SchemaInterface;
 
 use function array_walk_recursive;
 use function is_array;
@@ -99,11 +100,15 @@ final class ColumnSchema extends AbstractColumnSchema
     {
         if ($this->dimension > 0) {
             if (is_string($value)) {
-                $value = $this->getArrayParser()->parse($value);
+                $value = (new ArrayParser())->parse($value);
             }
 
             if (!is_array($value)) {
                 return null;
+            }
+
+            if ($this->dimension === 1 && $this->getType() !== SchemaInterface::TYPE_JSON) {
+                return array_map([$this->typecast, $this->phpTypecast], $value);
             }
 
             array_walk_recursive($value, function (mixed &$val) {
@@ -115,14 +120,6 @@ final class ColumnSchema extends AbstractColumnSchema
         }
 
         return $this->typecast->{$this->phpTypecast}($value);
-    }
-
-    /**
-     * Creates instance of ArrayParser.
-     */
-    private function getArrayParser(): ArrayParser
-    {
-        return new ArrayParser();
     }
 
     /**

@@ -71,4 +71,9 @@ class DbTypecastBench extends AbstractTypecastBench
     {
         $this->bit->dbTypecast(123);
     }
+
+    public function benchDbTypecastIntArray(): void
+    {
+        $this->intArray->dbTypecast([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    }
 }

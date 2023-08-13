@@ -30,6 +30,8 @@ class AbstractTypecastBench
 
     public ColumnSchema $bit;
 
+    public ColumnSchema $intArray;
+
     /**
      * Load the bulk of the definitions.
      */
@@ -83,5 +85,13 @@ class AbstractTypecastBench
         $this->bit->phpType(SchemaInterface::PHP_TYPE_INTEGER);
         $this->bit->dbTypecast = 'dbBit';
         $this->bit->phpTypecast = 'phpBit';
+
+        $this->intArray = new ColumnSchema('int_array');
+        $this->intArray->type(SchemaInterface::TYPE_INTEGER);
+        $this->intArray->dbType('int4');
+        $this->intArray->phpType(SchemaInterface::PHP_TYPE_INTEGER);
+        $this->intArray->dimension(1);
+        $this->intArray->dbTypecast = SchemaInterface::PHP_TYPE_INTEGER;
+        $this->intArray->phpTypecast = SchemaInterface::PHP_TYPE_INTEGER;
     }
 }
